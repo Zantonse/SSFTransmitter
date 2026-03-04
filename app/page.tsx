@@ -29,7 +29,7 @@ export default function Home() {
   const [logs, setLogs] = useState<{ time: string; message: string; type: 'info' | 'success' | 'error' }[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastPayload, setLastPayload] = useState<Record<string, unknown> | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('high');
   const [previewEvent, setPreviewEvent] = useState<SecurityEvent | null>(null);
   const [history, setHistory] = useState<TransmissionRecord[]>([]);
