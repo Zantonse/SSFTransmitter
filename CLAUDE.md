@@ -26,16 +26,19 @@ No test framework is configured.
 The entire UI lives in `app/page.tsx` — a `'use client'` component that owns all application state. There is no routing beyond the single page. State is managed via `useState` hooks (no external state library). Configuration and transmission history persist to localStorage with debounced writes.
 
 **localStorage keys:**
-- `ssf-transmitter-config` — Okta domain, issuer URL, subject email, provider, risk level, theme, JWKS URL
+- `ssf-transmitter-config` — Okta domain, issuer URL, subject email, provider, risk level, theme, JWKS URL, API token, provider registration status
 - `ssf-transmission-history` — last 100 transmission records
 
 ### API Routes (Server-Side)
 
-All three routes are POST-only Next.js API routes:
+Six Next.js API routes:
 
-- **`app/api/transmit/route.ts`** — Core endpoint. Imports the private key via `jose.importPKCS8`, builds the SET payload from provider/event config or a custom payload, signs with `jose.SignJWT`, and POSTs to `https://{oktaDomain}/security/api/v1/security-events` with `Content-Type: application/secevent+jwt`. Returns the signed JWT and parsed Okta error details on failure.
-- **`app/api/verify-jwks/route.ts`** — Fetches a user-provided JWKS URL and checks that it contains a key matching the expected `kid`. Used for pre-flight validation before transmitting.
-- **`app/api/test-connection/route.ts`** — Sends a HEAD request to the Okta security events endpoint to verify reachability. Sanitizes `-admin` suffix and trailing slashes from the domain.
+- **`app/api/transmit/route.ts`** (POST) — Core endpoint. Imports the private key via `jose.importPKCS8`, builds the SET payload from provider/event config or a custom payload, signs with `jose.SignJWT`, and POSTs to `https://{oktaDomain}/security/api/v1/security-events` with `Content-Type: application/secevent+jwt`. Returns the signed JWT and parsed Okta error details on failure.
+- **`app/api/jwks/route.ts`** (GET/POST) — Auto-hosted JWKS endpoint. GET returns `{ keys: [...] }` from an in-memory store. POST accepts `{ kid, publicJwk }` to publish a key. Eliminates the need for external JWKS hosting (npoint.io).
+- **`app/.well-known/ssf-configuration/route.ts`** (GET) — SSF-compliant well-known configuration. Returns `{ issuer, jwks_uri }` derived from the request host. Used by Okta when registering this app as a security events provider.
+- **`app/api/create-provider/route.ts`** (POST) — Proxies a call to `POST /api/v1/security-events-providers` on the user's Okta domain using their SSWS API token. Registers this app as an SSF provider via the well-known URL.
+- **`app/api/verify-jwks/route.ts`** (POST) — Fetches a user-provided JWKS URL and checks that it contains a key matching the expected `kid`. Used for pre-flight validation before transmitting.
+- **`app/api/test-connection/route.ts`** (POST) — Sends a HEAD request to the Okta security events endpoint to verify reachability. Sanitizes `-admin` suffix and trailing slashes from the domain.
 
 ### Data Model
 
@@ -49,12 +52,21 @@ Types are in `app/types/` — `SecurityProvider`, `SecurityEvent`, `RiskLevel`, 
 
 1. Browser generates RS256 key pair via `jose.generateKeyPair('RS256', { extractable: true })` in `app/utils/crypto.ts`
 2. Private key exported as PKCS8 PEM, stays in browser state (never persisted)
-3. Public key exported as JWK — user copies it to a hosted JWKS endpoint
-4. On transmit, PEM is sent to the server API route for signing
+3. Public key auto-published to `/api/jwks` (in-memory server store) — no external hosting needed
+4. Issuer URL auto-set to the app's origin (e.g. `https://ssf-transmitter.vercel.app`)
+5. On transmit, PEM is sent to the server API route for signing
+
+### Setup Flow
+
+The app features a 4-step guided setup with a `SetupStepper` progress bar:
+1. **Configure** — Enter Okta domain, target email, and optionally an API token
+2. **Generate Keys** — Creates RSA key pair and auto-hosts JWKS
+3. **Register Provider** (optional) — One-click registration via Okta SSF Receiver API
+4. **Send Events** — Transmit security signals
 
 ### Components
 
-All in `app/components/`. Notable ones: `ProviderSelector` (vendor switcher that updates issuer URL), `EventButtonGrid` (event action buttons), `ScenarioRunner` (multi-step attack automation with delays), `BulkSender` (event queue), `CustomEventBuilder` (freeform JSON payload), `TransmissionHistory` (log with replay), `PayloadPreview` (JWT inspection modal).
+All in `app/components/`. Notable ones: `SetupStepper` (4-step progress indicator), `ProviderSelector` (vendor switcher that updates issuer URL), `EventButtonGrid` (event action buttons), `ScenarioRunner` (multi-step attack automation with delays), `BulkSender` (event queue), `CustomEventBuilder` (freeform JSON payload), `TransmissionHistory` (log with replay), `PayloadPreview` (JWT inspection modal).
 
 ## React Compiler
 
@@ -79,7 +91,7 @@ See `buildRiskPayload()` in `app/config/providers.ts:17-41`.
 
 ### JWKS Hosting
 
-The public key JWKS must be hosted at a URL returning `Content-Type: application/json`. GitHub Gists fail this — use npoint.io or mocky.io. If keys are regenerated, the hosted JWKS must be updated immediately.
+The JWKS is auto-hosted at `/api/jwks` with an in-memory store. Keys are ephemeral — regenerated each browser session and re-pushed on page load. The `/.well-known/ssf-configuration` endpoint serves the SSF-compliant discovery document. For external hosting, the public key can still be manually copied from the Key Management section.
 
 ## Common Errors
 
