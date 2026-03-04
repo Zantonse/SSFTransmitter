@@ -14,6 +14,7 @@ import BulkSender from './components/BulkSender';
 import CustomEventBuilder from './components/CustomEventBuilder';
 import SessionStats from './components/SessionStats';
 import ScenarioRunner from './components/ScenarioRunner';
+import SetupStepper from './components/SetupStepper';
 import { TransmissionRecord } from './types/history';
 import { QueuedEvent, BulkSendResult } from './types/bulk';
 
@@ -40,6 +41,15 @@ export default function Home() {
   const [jwksUrl, setJwksUrl] = useState('');
   const [jwksVerifyStatus, setJwksVerifyStatus] = useState<{ status: 'idle' | 'loading' | 'valid' | 'error'; message: string }>({ status: 'idle', message: '' });
   const [connectionStatus, setConnectionStatus] = useState<{ status: 'idle' | 'loading' | 'reachable' | 'unreachable'; message: string }>({ status: 'idle', message: '' });
+  const [oktaApiToken, setOktaApiToken] = useState('');
+  const [showApiToken, setShowApiToken] = useState(false);
+  const [providerRegistration, setProviderRegistration] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    providerId?: string;
+    providerStatus?: string;
+    error?: string;
+  }>({ status: 'idle' });
+  const [jwksHosted, setJwksHosted] = useState(false);
 
   const selectedProvider = PROVIDERS[providerId];
 
@@ -89,6 +99,12 @@ export default function Home() {
         if (parsed.jwksUrl) {
           setJwksUrl(parsed.jwksUrl);
         }
+        if (parsed.oktaApiToken) {
+          setOktaApiToken(parsed.oktaApiToken);
+        }
+        if (parsed.providerRegistration && parsed.providerRegistration.status === 'success') {
+          setProviderRegistration(parsed.providerRegistration);
+        }
       } catch {
         // Invalid stored config, ignore
       }
@@ -115,10 +131,12 @@ export default function Home() {
         riskLevel,
         theme,
         jwksUrl,
+        oktaApiToken,
+        providerRegistration: providerRegistration.status === 'success' ? providerRegistration : undefined,
       }));
     }, 300);
     return () => clearTimeout(saveTimeout);
-  }, [config, providerId, riskLevel, theme, jwksUrl, configLoaded]);
+  }, [config, providerId, riskLevel, theme, jwksUrl, oktaApiToken, providerRegistration, configLoaded]);
 
   const clearSavedConfig = () => {
     localStorage.removeItem('ssf-transmitter-config');
@@ -127,6 +145,9 @@ export default function Home() {
     setRiskLevel('high');
     setJwksUrl('');
     setJwksVerifyStatus({ status: 'idle', message: '' });
+    setOktaApiToken('');
+    setProviderRegistration({ status: 'idle' });
+    setJwksHosted(false);
     addLog('Saved configuration cleared', 'info');
   };
 
@@ -248,7 +269,90 @@ export default function Home() {
     const result = await generateKeyPair();
     setKeys(result);
     addLog(`Key pair generated. KID: ${result.kid}`, 'success');
-    addLog('Update your JWKS endpoint with the public key below', 'info');
+
+    // Auto-push public key to hosted JWKS endpoint
+    try {
+      const res = await fetch('/api/jwks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kid: result.kid, publicJwk: result.publicJwk }),
+      });
+      if (res.ok) {
+        setJwksHosted(true);
+        // Auto-set issuer URL to this app's origin
+        setConfig((prev) => ({ ...prev, issuerUrl: window.location.origin }));
+        addLog('Public key published to /api/jwks', 'success');
+      }
+    } catch {
+      addLog('Warning: Could not publish key to /api/jwks', 'error');
+    }
+  };
+
+  // Re-push keys to /api/jwks if keys exist (e.g., after server restart)
+  useEffect(() => {
+    if (!keys) return;
+    fetch('/api/jwks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kid: keys.kid, publicJwk: keys.publicJwk }),
+    }).then((res) => {
+      if (res.ok) setJwksHosted(true);
+    }).catch(() => {});
+  }, [keys]);
+
+  const handleCreateProvider = async () => {
+    if (!config.oktaDomain || !oktaApiToken) return;
+    setProviderRegistration({ status: 'loading' });
+    addLog('Registering SSF provider in Okta...', 'info');
+
+    try {
+      const appUrl = window.location.origin;
+      const res = await fetch('/api/create-provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oktaDomain: config.oktaDomain,
+          apiToken: oktaApiToken,
+          appUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProviderRegistration({
+          status: 'success',
+          providerId: data.providerId,
+          providerStatus: data.providerStatus,
+        });
+        addLog(`Provider registered: ${data.providerId} (${data.providerStatus})`, 'success');
+      } else {
+        setProviderRegistration({
+          status: 'error',
+          error: data.errorDescription || data.error,
+        });
+        addLog(`Provider registration failed: ${data.errorDescription || data.error}`, 'error');
+      }
+    } catch {
+      setProviderRegistration({ status: 'error', error: 'Network error' });
+      addLog('Provider registration failed: network error', 'error');
+    }
+  };
+
+  const handleStepClick = (stepId: string) => {
+    const sectionMap: Record<string, string> = {
+      configure: 'section-config',
+      keys: 'section-keys',
+      register: 'section-register',
+      send: 'section-transmit',
+    };
+    const el = document.getElementById(sectionMap[stepId]);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const completedSteps = {
+    configure: Boolean(config.oktaDomain && config.subjectEmail),
+    keys: Boolean(keys && jwksHosted),
+    register: providerRegistration.status === 'success',
+    send: history.length > 0,
   };
 
   const handleProviderChange = (provider: SecurityProvider) => {
@@ -698,11 +802,12 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <SessionStats history={history} sessionStart={sessionStartRef.current} />
+        <SetupStepper completedSteps={completedSteps} onStepClick={handleStepClick} />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Configuration */}
           <div className="lg:col-span-3 space-y-6">
             {/* Configuration Card */}
-            <div className="card p-6">
+            <div id="section-config" className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">01</div>
@@ -835,11 +940,46 @@ export default function Home() {
                     </span>
                   )}
                 </div>
+
+                {/* Okta API Key */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-[var(--text-secondary)] mb-2 flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Okta API Token
+                    <span className="text-[10px] text-[var(--text-muted)] font-normal">(for auto-registering provider)</span>
+                  </label>
+                  <div className="api-key-wrapper">
+                    <input
+                      className="input-field"
+                      type={showApiToken ? 'text' : 'password'}
+                      placeholder="Enter your Okta API token (SSWS)"
+                      value={oktaApiToken}
+                      onChange={(e) => setOktaApiToken(e.target.value)}
+                    />
+                    <button
+                      className="api-key-toggle"
+                      onClick={() => setShowApiToken((prev) => !prev)}
+                      title={showApiToken ? 'Hide token' : 'Show token'}
+                    >
+                      {showApiToken ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-2 opacity-70">
+                    Generate at Okta Admin Console → Security → API → Tokens. Stored in browser only.
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Key Management Card */}
-            <div className="card p-6">
+            <div id="section-keys" className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">02</div>
@@ -855,25 +995,21 @@ export default function Home() {
 
               {keys ? (
                 <div className="space-y-4">
-                  <div className="alert-warning">
-                    <span className="alert-icon">!</span>
-                    <span className="alert-text">
-                      Copy the JWKS below and host it at your issuer&apos;s /.well-known/jwks.json endpoint
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      readOnly
-                      className="jwks-output h-32"
-                      value={JSON.stringify({ keys: [keys.publicJwk] }, null, 2)}
-                    />
-                    <div className="absolute top-2 right-2">
-                      <CopyButton
-                        text={JSON.stringify({ keys: [keys.publicJwk] }, null, 2)}
-                        label="JWKS"
-                      />
+                  {jwksHosted ? (
+                    <div className="alert-success">
+                      <span className="alert-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                      <span className="alert-text">
+                        JWKS auto-hosted at <code className="text-[11px] bg-[var(--bg-tertiary)] px-1 rounded">{typeof window !== 'undefined' ? window.location.origin : ''}/api/jwks</code>
+                      </span>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="alert-warning">
+                      <span className="alert-icon">!</span>
+                      <span className="alert-text">Publishing key to JWKS endpoint...</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -884,54 +1020,28 @@ export default function Home() {
                     </div>
                     <CopyButton text={keys.kid} label="Key ID" />
                   </div>
-                  {/* JWKS Hosting Flow */}
-                  <div className="jwks-hosting-flow">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Host your JWKS</span>
+                  <details className="collapsible-tip">
+                    <summary>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      View JWKS / Manual hosting
+                    </summary>
+                    <div className="tip-content">
+                      <p>The JWKS is auto-hosted by this app. If you need to host it externally instead:</p>
+                      <div className="relative mt-2">
+                        <textarea
+                          readOnly
+                          className="jwks-output h-24"
+                          value={JSON.stringify({ keys: [keys.publicJwk] }, null, 2)}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <CopyButton
+                            text={JSON.stringify({ keys: [keys.publicJwk] }, null, 2)}
+                            label="JWKS"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2 mb-3">
-                      <a
-                        href="https://www.npoint.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-secondary text-xs flex-1 justify-center"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        Open npoint.io
-                      </a>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        className="input-field flex-1 text-xs"
-                        placeholder="https://api.npoint.io/abc123"
-                        value={jwksUrl}
-                        onChange={(e) => {
-                          setJwksUrl(e.target.value);
-                          setJwksVerifyStatus({ status: 'idle', message: '' });
-                        }}
-                      />
-                      <button
-                        onClick={handleVerifyJwks}
-                        disabled={!jwksUrl || jwksVerifyStatus.status === 'loading'}
-                        className="btn-secondary text-xs whitespace-nowrap"
-                      >
-                        {jwksVerifyStatus.status === 'loading' ? 'Verifying...' : 'Verify'}
-                      </button>
-                    </div>
-                    {jwksVerifyStatus.status !== 'idle' && jwksVerifyStatus.status !== 'loading' && (
-                      <p className={`text-xs mt-2 flex items-center gap-1 ${jwksVerifyStatus.status === 'valid' ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
-                        {jwksVerifyStatus.status === 'valid' ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                        )}
-                        {jwksVerifyStatus.message}
-                      </p>
-                    )}
-                    <p className="text-[10px] text-[var(--text-muted)] mt-2 opacity-70">
-                      Paste your JWKS JSON into npoint.io, then enter the API URL above to verify. GitHub Gists won&apos;t work (wrong Content-Type).
-                    </p>
-                  </div>
+                  </details>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -946,11 +1056,78 @@ export default function Home() {
               )}
             </div>
 
-            {/* Transmission Card */}
-            <div className="card p-6">
+            {/* Register Provider Card */}
+            <div id="section-register" className="card p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">03</div>
+                  <h2 className="section-title">Register Provider</h2>
+                </div>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Optional</span>
+              </div>
+
+              {providerRegistration.status === 'success' ? (
+                <div className="space-y-3">
+                  <div className="provider-registration-status">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">Provider Registered</p>
+                      <p className="text-xs text-[var(--text-muted)]" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                        ID: {providerRegistration.providerId}
+                      </p>
+                    </div>
+                    <span className="provider-status-badge active">{providerRegistration.providerStatus}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Automatically create a Security Events Provider in Okta using the SSF Receiver API.
+                    This registers the app&apos;s well-known URL so Okta can verify signed events.
+                  </p>
+                  {jwksHosted && (
+                    <div className="text-xs text-[var(--text-muted)] space-y-1">
+                      <p>Well-known URL: <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">{typeof window !== 'undefined' ? window.location.origin : ''}/.well-known/ssf-configuration</code></p>
+                    </div>
+                  )}
+                  {providerRegistration.status === 'error' && (
+                    <div className="text-xs text-[var(--accent-red)] bg-[rgba(248,81,73,0.1)] border border-[var(--accent-red)] rounded-lg p-3">
+                      {providerRegistration.error}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleCreateProvider}
+                    disabled={!config.oktaDomain || !oktaApiToken || !keys || !jwksHosted || providerRegistration.status === 'loading'}
+                    className="btn-primary flex items-center gap-2 w-full justify-center"
+                  >
+                    {providerRegistration.status === 'loading' ? (
+                      <>
+                        <div className="scenario-spinner" />
+                        Registering...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Create Provider in Okta
+                      </>
+                    )}
+                  </button>
+                  {(!config.oktaDomain || !oktaApiToken || !keys) && (
+                    <p className="text-[10px] text-[var(--accent-yellow)] text-center">
+                      {!config.oktaDomain ? 'Set Okta domain first' : !oktaApiToken ? 'Add API token in Configuration' : 'Generate keys first'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Transmission Card */}
+            <div id="section-transmit" className="card p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="section-header mb-0">
+                  <div className="section-number">04</div>
                   <h2 className="section-title">Transmission</h2>
                 </div>
                 <div className="flex items-center gap-4">
@@ -984,7 +1161,7 @@ export default function Home() {
               <div className="card p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div className="section-header mb-0">
-                    <div className="section-number">04</div>
+                    <div className="section-number">05</div>
                     <h2 className="section-title">Last Payload</h2>
                   </div>
                   <CopyButton
