@@ -2457,3 +2457,188 @@ body {
 .timeline-marker:hover {
   filter: brightness(1.2);
 }
+
+/* Setup Stepper */
+.setup-stepper {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  margin-bottom: 24px;
+  gap: 0;
+}
+
+.setup-stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.setup-stepper-item:first-child {
+  flex: 0 0 auto;
+}
+
+.setup-stepper-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-default);
+  margin: 0 4px;
+  transition: background 0.3s ease;
+}
+
+.setup-stepper-line.complete {
+  background: var(--accent-green);
+}
+
+.setup-stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.setup-stepper-circle:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.setup-stepper-circle.complete {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+}
+
+.setup-stepper-circle.current {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  box-shadow: 0 0 0 4px rgba(22, 98, 221, 0.15);
+  animation: stepper-pulse 2s infinite;
+}
+
+@keyframes stepper-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(22, 98, 221, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 98, 221, 0.08);
+  }
+}
+
+.setup-stepper-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.setup-stepper-label.complete {
+  color: var(--accent-green);
+}
+
+.setup-stepper-label.current {
+  color: var(--text-primary);
+}
+
+.setup-stepper-optional {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Provider Registration Section */
+.provider-registration-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(63, 185, 80, 0.03));
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  border-radius: 8px;
+}
+
+.provider-status-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.provider-status-badge.active {
+  background: var(--accent-green);
+  color: white;
+}
+
+/* API Key Input */
+.api-key-wrapper {
+  position: relative;
+  display: flex;
+  gap: 0;
+}
+
+.api-key-wrapper .input-field {
+  padding-right: 44px;
+}
+
+.api-key-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.api-key-toggle:hover {
+  color: var(--text-secondary);
+}
+
+/* Alert success variant */
+.alert-success {
+  background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(63, 185, 80, 0.05));
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alert-success .alert-icon {
+  color: var(--accent-green);
+  font-size: 18px;
+}
+
+.alert-success .alert-text {
+  color: var(--accent-green);
+  font-size: 13px;
+}
