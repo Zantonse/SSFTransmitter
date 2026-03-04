@@ -34,7 +34,8 @@ export default function Home() {
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('high');
   const [previewEvent, setPreviewEvent] = useState<SecurityEvent | null>(null);
   const [history, setHistory] = useState<TransmissionRecord[]>([]);
-  const [rightPanelTab, setRightPanelTab] = useState<'log' | 'history' | 'bulk' | 'custom' | 'scenarios'>('log');
+  const [rightPanelTab, setRightPanelTab] = useState<'log' | 'history'>('log');
+  const [toolsTab, setToolsTab] = useState<'bulk' | 'custom' | 'scenarios'>('scenarios');
   const [bulkQueue, setBulkQueue] = useState<QueuedEvent[]>([]);
   const [configLoaded, setConfigLoaded] = useState(false);
   const sessionStartRef = useRef(Date.now());
@@ -1156,6 +1157,75 @@ export default function Home() {
               />
             </div>
 
+            {/* Advanced Tools */}
+            <div className="card overflow-hidden">
+              <div className="right-panel-tabs">
+                <button
+                  onClick={() => setToolsTab('scenarios')}
+                  className={`right-panel-tab ${toolsTab === 'scenarios' ? 'active' : ''}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Scenarios
+                </button>
+                <button
+                  onClick={() => setToolsTab('bulk')}
+                  className={`right-panel-tab ${toolsTab === 'bulk' ? 'active' : ''}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                  Bulk
+                  {bulkQueue.length > 0 && (
+                    <span className="tab-badge">{bulkQueue.length}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setToolsTab('custom')}
+                  className={`right-panel-tab ${toolsTab === 'custom' ? 'active' : ''}`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Custom
+                </button>
+              </div>
+              <div className="right-panel-content">
+                {toolsTab === 'scenarios' ? (
+                  <div className="h-[500px] overflow-hidden">
+                    <ScenarioRunner
+                      disabled={!keys}
+                      onTransmitStep={handleScenarioStep}
+                    />
+                  </div>
+                ) : toolsTab === 'bulk' ? (
+                  <div className="h-[500px] overflow-hidden">
+                    <BulkSender
+                      queue={bulkQueue}
+                      onRemoveFromQueue={removeFromQueue}
+                      onClearQueue={clearQueue}
+                      onSendAll={handleBulkSend}
+                      disabled={!keys}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[500px] overflow-hidden">
+                    <CustomEventBuilder
+                      subjectEmail={config.subjectEmail}
+                      riskLevel={riskLevel}
+                      onSend={handleCustomEventSend}
+                      loading={loading}
+                      disabled={!keys}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Payload Viewer */}
             {lastPayload && (
               <div className="card p-6">
@@ -1202,39 +1272,6 @@ export default function Home() {
                     <span className="tab-badge">{history.length}</span>
                   )}
                 </button>
-                <button
-                  onClick={() => setRightPanelTab('bulk')}
-                  className={`right-panel-tab ${rightPanelTab === 'bulk' ? 'active' : ''}`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                  </svg>
-                  Bulk
-                  {bulkQueue.length > 0 && (
-                    <span className="tab-badge">{bulkQueue.length}</span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('custom')}
-                  className={`right-panel-tab ${rightPanelTab === 'custom' ? 'active' : ''}`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  Custom
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('scenarios')}
-                  className={`right-panel-tab ${rightPanelTab === 'scenarios' ? 'active' : ''}`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                  Scenarios
-                </button>
               </div>
 
               {/* Tab Content */}
@@ -1258,39 +1295,12 @@ export default function Home() {
                       ))
                     )}
                   </div>
-                ) : rightPanelTab === 'history' ? (
+                ) : (
                   <div className="h-[500px] overflow-hidden">
                     <TransmissionHistory
                       records={history}
                       onReplay={handleReplay}
                       onClear={clearHistory}
-                    />
-                  </div>
-                ) : rightPanelTab === 'bulk' ? (
-                  <div className="h-[500px] overflow-hidden">
-                    <BulkSender
-                      queue={bulkQueue}
-                      onRemoveFromQueue={removeFromQueue}
-                      onClearQueue={clearQueue}
-                      onSendAll={handleBulkSend}
-                      disabled={!keys}
-                    />
-                  </div>
-                ) : rightPanelTab === 'custom' ? (
-                  <div className="h-[500px] overflow-hidden">
-                    <CustomEventBuilder
-                      subjectEmail={config.subjectEmail}
-                      riskLevel={riskLevel}
-                      onSend={handleCustomEventSend}
-                      loading={loading}
-                      disabled={!keys}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-[500px] overflow-hidden">
-                    <ScenarioRunner
-                      disabled={!keys}
-                      onTransmitStep={handleScenarioStep}
                     />
                   </div>
                 )}
