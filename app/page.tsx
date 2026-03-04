@@ -949,7 +949,7 @@ export default function Home() {
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                     Okta API Token
-                    <span className="text-[10px] text-[var(--text-muted)] font-normal">(for auto-registering provider)</span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-normal">(optional — only needed for Step 3)</span>
                   </label>
                   <div className="api-key-wrapper">
                     <input
@@ -1141,6 +1141,10 @@ export default function Home() {
                 </div>
               </div>
 
+              <p className="text-xs text-[var(--text-secondary)] mb-4">
+                Sets the <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">current_level</code> in the risk-change payload sent to Okta. High risk triggers Entity Risk Policy actions (e.g. Universal Logout, step-up MFA).
+              </p>
+
               <EventButtonGrid
                 events={selectedProvider.events}
                 loading={loading}
@@ -1150,10 +1154,6 @@ export default function Home() {
                 onPreviewClick={setPreviewEvent}
                 onAddToQueue={addToQueue}
               />
-
-              <p className="text-xs text-[var(--text-muted)] text-center mt-4">
-                All events trigger Okta Identity Threat Protection via the user-risk-change schema
-              </p>
             </div>
 
             {/* Payload Viewer */}
