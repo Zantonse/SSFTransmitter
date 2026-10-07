@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { RiskLevel } from '../types/providers';
+import {
+  OKTA_RISK_SCHEMA,
+  RISC_SESSION_REVOKED,
+  RISC_CREDENTIAL_CHANGE,
+  RISC_ACCOUNT_DISABLED,
+  CAEP_SESSION_REVOKED,
+  CAEP_CREDENTIAL_CHANGE,
+  CAEP_ASSURANCE_LEVEL_CHANGE,
+  CAEP_RISK_LEVEL_CHANGE,
+} from '../config/providers';
 
 interface CustomEventTemplate {
   id: string;
@@ -22,10 +32,14 @@ interface CustomEventBuilderProps {
 }
 
 const SCHEMA_OPTIONS = [
-  { value: 'https://schemas.okta.com/secevent/okta/event-type/user-risk-change', label: 'Okta User Risk Change' },
-  { value: 'https://schemas.openid.net/secevent/risc/event-type/session-revoked', label: 'RISC Session Revoked' },
-  { value: 'https://schemas.openid.net/secevent/risc/event-type/credential-change-required', label: 'RISC Credential Change Required' },
-  { value: 'https://schemas.openid.net/secevent/risc/event-type/account-disabled', label: 'RISC Account Disabled' },
+  { value: OKTA_RISK_SCHEMA, label: 'Okta User Risk Change' },
+  { value: CAEP_SESSION_REVOKED, label: 'CAEP Session Revoked' },
+  { value: CAEP_CREDENTIAL_CHANGE, label: 'CAEP Credential Change' },
+  { value: CAEP_ASSURANCE_LEVEL_CHANGE, label: 'CAEP Assurance Level Change' },
+  { value: CAEP_RISK_LEVEL_CHANGE, label: 'CAEP Risk Level Change' },
+  { value: RISC_SESSION_REVOKED, label: 'RISC Session Revoked (legacy namespace)' },
+  { value: RISC_CREDENTIAL_CHANGE, label: 'RISC Credential Change Required' },
+  { value: RISC_ACCOUNT_DISABLED, label: 'RISC Account Disabled' },
   { value: 'custom', label: 'Custom Schema URL' },
 ];
 
@@ -54,6 +68,8 @@ export default function CustomEventBuilder({
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
+        // localStorage is only readable after mount, so this has to happen in an effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTemplates(JSON.parse(stored));
       } catch {
         // Invalid stored data
@@ -71,9 +87,11 @@ export default function CustomEventBuilder({
     return schema === 'custom' ? customSchema : schema;
   };
 
-  const buildPayload = (): Record<string, unknown> => {
+  // Fixed timestamp for the on-screen preview; sends use the current time
+  const [previewTimestamp] = useState(() => Math.floor(Date.now() / 1000));
+
+  const buildPayload = (timestamp: number): Record<string, unknown> => {
     const effectiveSchema = getEffectiveSchema();
-    const timestamp = Math.floor(Date.now() / 1000);
 
     // Parse custom fields if provided
     let customFieldsObj = {};
@@ -92,6 +110,39 @@ export default function CustomEventBuilder({
           event_timestamp: timestamp,
           current_level: localRiskLevel,
           previous_level: 'low',
+          initiating_entity: 'policy',
+          reason_admin: { en: adminReason },
+          reason_user: { en: userReason },
+          subject: {
+            user: {
+              format: 'email',
+              email: subjectEmail,
+            },
+          },
+          ...customFieldsObj,
+        },
+      };
+    } else if (effectiveSchema === CAEP_RISK_LEVEL_CHANGE) {
+      return {
+        [effectiveSchema]: {
+          event_timestamp: timestamp,
+          principal: 'USER',
+          current_level: localRiskLevel.toUpperCase(),
+          risk_reason: adminReason,
+          subject: {
+            user: {
+              format: 'email',
+              email: subjectEmail,
+            },
+          },
+          ...customFieldsObj,
+        },
+      };
+    } else if (effectiveSchema.includes('/secevent/caep/')) {
+      // CAEP common claims; add type-specific fields (e.g. credential_type, change_type) via custom fields
+      return {
+        [effectiveSchema]: {
+          event_timestamp: timestamp,
           initiating_entity: 'policy',
           reason_admin: { en: adminReason },
           reason_user: { en: userReason },
@@ -156,11 +207,11 @@ export default function CustomEventBuilder({
   };
 
   const handleSend = async () => {
-    const payload = buildPayload();
+    const payload = buildPayload(Math.floor(Date.now() / 1000));
     await onSend(payload);
   };
 
-  const payload = buildPayload();
+  const payload = buildPayload(previewTimestamp);
 
   return (
     <div className="custom-event-builder">

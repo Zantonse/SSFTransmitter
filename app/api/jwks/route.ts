@@ -1,21 +1,12 @@
 import { type JWK } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
+import { getKeyStore, isValidTenantId, LEGACY_TENANT } from '../../lib/store';
+import { JWKS_HEADERS } from '../../lib/http';
 
-const keyStore = new Map<string, JWK>();
-
+// Legacy single-tenant JWKS (issuer = app origin). New setups use /api/jwks/{tenant}.
 export async function GET() {
-  const keys = Array.from(keyStore.values());
-
-  return NextResponse.json(
-    { keys },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
+  const keys = await getKeyStore().getKeys(LEGACY_TENANT);
+  return NextResponse.json({ keys }, { headers: JWKS_HEADERS });
 }
 
 export async function POST(request: NextRequest) {
@@ -42,7 +33,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { kid, publicJwk } = body as { kid: unknown; publicJwk: unknown };
+  const { kid, publicJwk, tenantId } = body as { kid: unknown; publicJwk: unknown; tenantId?: unknown };
 
   if (typeof kid !== 'string' || !kid) {
     return NextResponse.json(
@@ -58,8 +49,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  keyStore.clear();
-  keyStore.set(kid, publicJwk as JWK);
+  if ('d' in publicJwk) {
+    return NextResponse.json(
+      { error: 'Refusing to publish a private key — send the public JWK only' },
+      { status: 400 }
+    );
+  }
 
-  return NextResponse.json({ success: true, kid });
+  if (tenantId !== undefined && (typeof tenantId !== 'string' || !isValidTenantId(tenantId))) {
+    return NextResponse.json(
+      { error: 'Field "tenantId" must be 6-64 characters of [a-zA-Z0-9_-]' },
+      { status: 400 }
+    );
+  }
+
+  const tenant = typeof tenantId === 'string' ? tenantId : LEGACY_TENANT;
+  await getKeyStore().putKey(tenant, { ...(publicJwk as JWK), kid });
+
+  return NextResponse.json({ success: true, kid, tenantId: tenant });
 }

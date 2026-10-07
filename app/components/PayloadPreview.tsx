@@ -8,6 +8,7 @@ interface PayloadPreviewProps {
   event: SecurityEvent;
   subjectEmail: string;
   riskLevel: RiskLevel;
+  previousLevel?: RiskLevel;
   issuerUrl: string;
   oktaDomain: string;
   onClose: () => void;
@@ -19,6 +20,7 @@ export default function PayloadPreview({
   event,
   subjectEmail,
   riskLevel,
+  previousLevel,
   issuerUrl,
   oktaDomain,
   onClose,
@@ -29,9 +31,9 @@ export default function PayloadPreview({
   const [editedPayload, setEditedPayload] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
 
-  // Generate the preview payload
-  const timestamp = Math.floor(Date.now() / 1000);
-  const eventsPayload = event.buildPayload(subjectEmail, timestamp, riskLevel);
+  // Generate the preview payload (timestamp fixed when the modal opens)
+  const [timestamp] = useState(() => Math.floor(Date.now() / 1000));
+  const eventsPayload = event.buildPayload(subjectEmail, timestamp, riskLevel, { previousLevel });
 
   // Construct the full SET structure for preview
   const fullPayload = {

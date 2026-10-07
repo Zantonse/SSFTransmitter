@@ -18,6 +18,14 @@ import SetupStepper from './components/SetupStepper';
 import { TransmissionRecord } from './types/history';
 import { QueuedEvent, BulkSendResult } from './types/bulk';
 
+const KEYS_STORAGE_KEY = 'ssf-transmitter-keys';
+const RISK_TRACKER_STORAGE_KEY = 'ssf-risk-tracker';
+
+const SYSTEM_LOG_QUERIES = [
+  { label: 'Signal received', query: 'eventType eq "security.events.provider.receive_event"' },
+  { label: 'Entity risk detected', query: 'eventType eq "user.risk.detect"' },
+];
+
 export default function Home() {
   const [config, setConfig] = useState({
     oktaDomain: '',
@@ -51,6 +59,14 @@ export default function Home() {
     error?: string;
   }>({ status: 'idle' });
   const [jwksHosted, setJwksHosted] = useState(false);
+  // Per-browser tenant: isolates this user's JWKS/issuer from other SEs on the same deployment
+  const [tenantId, setTenantId] = useState('');
+  const [appOrigin, setAppOrigin] = useState('');
+  const tenantBaseUrl = appOrigin && tenantId ? `${appOrigin}/t/${tenantId}` : '';
+  // Last risk level successfully sent per subject, so SETs report the real previous_level.
+  // The ref is read by async scenario/bulk loops (avoids stale closures); the state drives the UI.
+  const riskTrackerRef = useRef<Record<string, RiskLevel>>({});
+  const [riskTracker, setRiskTracker] = useState<Record<string, RiskLevel>>({});
 
   const selectedProvider = PROVIDERS[providerId];
 
@@ -76,8 +92,32 @@ export default function Home() {
       }
     }
 
+    setAppOrigin(window.location.origin);
+
+    const savedTracker = localStorage.getItem(RISK_TRACKER_STORAGE_KEY);
+    if (savedTracker) {
+      try {
+        riskTrackerRef.current = JSON.parse(savedTracker);
+        setRiskTracker(riskTrackerRef.current);
+      } catch {
+        // Invalid stored data, ignore
+      }
+    }
+
+    // Restore keys for this browser session (private key never leaves sessionStorage)
+    const savedKeys = sessionStorage.getItem(KEYS_STORAGE_KEY);
+    if (savedKeys) {
+      try {
+        setKeys(JSON.parse(savedKeys));
+      } catch {
+        // Invalid stored keys, ignore
+      }
+    }
+
     // Restore persisted configuration
     const savedConfig = localStorage.getItem('ssf-transmitter-config');
+    let restoredTenantId = '';
+    let legacyRegistration = false;
     if (savedConfig) {
       try {
         const parsed = JSON.parse(savedConfig);
@@ -103,15 +143,36 @@ export default function Home() {
         if (parsed.oktaApiToken) {
           setOktaApiToken(parsed.oktaApiToken);
         }
+        if (typeof parsed.tenantId === 'string') {
+          restoredTenantId = parsed.tenantId;
+        }
         if (parsed.providerRegistration && parsed.providerRegistration.status === 'success') {
-          setProviderRegistration(parsed.providerRegistration);
+          if (restoredTenantId) {
+            setProviderRegistration(parsed.providerRegistration);
+          } else {
+            // Registered before per-tenant issuers existed: Okta still expects the old issuer
+            legacyRegistration = true;
+          }
         }
       } catch {
         // Invalid stored config, ignore
       }
     }
+    setTenantId(restoredTenantId || crypto.randomUUID().replace(/-/g, '').slice(0, 16));
+    if (legacyRegistration) {
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+      setLogs((prev) => [
+        { time, message: 'SSF setup now uses a per-browser issuer — generate keys and register the provider again', type: 'info' },
+        ...prev,
+      ]);
+    }
     setConfigLoaded(true);
   }, []);
+
+  // Keep keys across page reloads within this browser session
+  useEffect(() => {
+    if (keys) sessionStorage.setItem(KEYS_STORAGE_KEY, JSON.stringify(keys));
+  }, [keys]);
 
   // Save history to localStorage when it changes
   useEffect(() => {
@@ -134,10 +195,11 @@ export default function Home() {
         jwksUrl,
         oktaApiToken,
         providerRegistration: providerRegistration.status === 'success' ? providerRegistration : undefined,
+        tenantId,
       }));
     }, 300);
     return () => clearTimeout(saveTimeout);
-  }, [config, providerId, riskLevel, theme, jwksUrl, oktaApiToken, providerRegistration, configLoaded]);
+  }, [config, providerId, riskLevel, theme, jwksUrl, oktaApiToken, providerRegistration, tenantId, configLoaded]);
 
   const clearSavedConfig = () => {
     localStorage.removeItem('ssf-transmitter-config');
@@ -238,6 +300,27 @@ export default function Home() {
     }
   };
 
+  const subjectKey = (email: string) => email.trim().toLowerCase();
+
+  const previousLevelFor = (event: SecurityEvent): RiskLevel | undefined =>
+    event.category === 'risk' ? riskTrackerRef.current[subjectKey(config.subjectEmail)] : undefined;
+
+  const recordRiskLevel = (event: SecurityEvent, level: RiskLevel) => {
+    if (event.category !== 'risk') return;
+    riskTrackerRef.current = { ...riskTrackerRef.current, [subjectKey(config.subjectEmail)]: level };
+    setRiskTracker(riskTrackerRef.current);
+    localStorage.setItem(RISK_TRACKER_STORAGE_KEY, JSON.stringify(riskTrackerRef.current));
+  };
+
+  const resetRiskTracker = () => {
+    const next = { ...riskTrackerRef.current };
+    delete next[subjectKey(config.subjectEmail)];
+    riskTrackerRef.current = next;
+    setRiskTracker(next);
+    localStorage.setItem(RISK_TRACKER_STORAGE_KEY, JSON.stringify(next));
+    addLog(`Risk tracker reset for ${config.subjectEmail} — next event reports previous_level from defaults`, 'info');
+  };
+
   const addHistoryRecord = (record: TransmissionRecord) => {
     setHistory((prev) => [record, ...prev].slice(0, 100)); // Keep last 100 records
   };
@@ -276,30 +359,30 @@ export default function Home() {
       const res = await fetch('/api/jwks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kid: result.kid, publicJwk: result.publicJwk }),
+        body: JSON.stringify({ kid: result.kid, publicJwk: result.publicJwk, tenantId }),
       });
       if (res.ok) {
         setJwksHosted(true);
-        // Auto-set issuer URL to this app's origin
-        setConfig((prev) => ({ ...prev, issuerUrl: window.location.origin }));
-        addLog('Public key published to /api/jwks', 'success');
+        // Auto-set issuer URL to this browser's tenant issuer
+        setConfig((prev) => ({ ...prev, issuerUrl: tenantBaseUrl }));
+        addLog(`Public key published to /api/jwks/${tenantId}`, 'success');
       }
     } catch {
-      addLog('Warning: Could not publish key to /api/jwks', 'error');
+      addLog(`Warning: Could not publish key to /api/jwks/${tenantId}`, 'error');
     }
   };
 
   // Re-push keys to /api/jwks if keys exist (e.g., after server restart)
   useEffect(() => {
-    if (!keys) return;
+    if (!keys || !tenantId) return;
     fetch('/api/jwks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kid: keys.kid, publicJwk: keys.publicJwk }),
+      body: JSON.stringify({ kid: keys.kid, publicJwk: keys.publicJwk, tenantId }),
     }).then((res) => {
       if (res.ok) setJwksHosted(true);
     }).catch(() => {});
-  }, [keys]);
+  }, [keys, tenantId]);
 
   const handleCreateProvider = async () => {
     if (!config.oktaDomain || !oktaApiToken) return;
@@ -307,7 +390,8 @@ export default function Home() {
     addLog('Registering SSF provider in Okta...', 'info');
 
     try {
-      const appUrl = window.location.origin;
+      // create-provider appends /.well-known/ssf-configuration to appUrl
+      const appUrl = tenantBaseUrl;
       const res = await fetch('/api/create-provider', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -358,7 +442,11 @@ export default function Home() {
 
   const handleProviderChange = (provider: SecurityProvider) => {
     setProviderId(provider.id);
-    setConfig((prev) => ({ ...prev, issuerUrl: provider.defaultIssuer }));
+    // With the auto-hosted JWKS, Okta knows this transmitter by its tenant issuer — keep it,
+    // or every SET is rejected. Vendor default issuers only apply to manually created streams.
+    if (config.issuerUrl !== tenantBaseUrl) {
+      setConfig((prev) => ({ ...prev, issuerUrl: provider.defaultIssuer }));
+    }
     addLog(`Provider switched to ${provider.name}`, 'info');
   };
 
@@ -384,6 +472,7 @@ export default function Home() {
           providerId,
           eventId: event.id,
           riskLevel: effectiveRiskLevel,
+          previousLevel: previousLevelFor(event),
         }),
       });
 
@@ -416,6 +505,7 @@ export default function Home() {
       addHistoryRecord(historyRecord);
 
       if (data.success) {
+        recordRiskLevel(event, effectiveRiskLevel);
         addLog(`Event transmitted successfully (HTTP ${data.status || 202})`, 'success');
       } else {
         // Log the error with details
@@ -545,12 +635,14 @@ export default function Home() {
             providerId: item.providerId,
             eventId: item.eventId,
             riskLevel: item.riskLevel,
+            previousLevel: previousLevelFor(event),
           }),
         });
 
         const data = await res.json();
 
         if (data.success) {
+          recordRiskLevel(event, item.riskLevel);
           setBulkQueue((prev) =>
             prev.map((q) => (q.id === item.id ? { ...q, status: 'success' as const } : q))
           );
@@ -691,7 +783,12 @@ export default function Home() {
   };
 
   // Scenario step handler — sends an event for a specific provider without switching the UI's active provider
-  const handleScenarioStep = async (stepProviderId: string, event: SecurityEvent, stepRiskLevel: RiskLevel): Promise<boolean> => {
+  const handleScenarioStep = async (
+    stepProviderId: string,
+    event: SecurityEvent,
+    stepRiskLevel: RiskLevel,
+    overrides?: { reasonAdmin?: string; reasonUser?: string }
+  ): Promise<boolean> => {
     if (!keys || !config.oktaDomain || !config.issuerUrl) {
       addLog('Missing configuration or keys', 'error');
       return false;
@@ -711,6 +808,9 @@ export default function Home() {
           providerId: stepProviderId,
           eventId: event.id,
           riskLevel: stepRiskLevel,
+          previousLevel: previousLevelFor(event),
+          reasonAdmin: overrides?.reasonAdmin,
+          reasonUser: overrides?.reasonUser,
         }),
       });
 
@@ -735,6 +835,7 @@ export default function Home() {
       addHistoryRecord(historyRecord);
 
       if (data.success) {
+        recordRiskLevel(event, stepRiskLevel);
         addLog(`[Scenario] ${event.label} sent successfully`, 'success');
         return true;
       } else {
@@ -986,7 +1087,7 @@ export default function Home() {
                   <div className="section-number">02</div>
                   <h2 className="section-title">Key Management</h2>
                 </div>
-                <button onClick={handleGenerateKeys} className="btn-primary flex items-center gap-2">
+                <button onClick={handleGenerateKeys} disabled={!tenantId} className="btn-primary flex items-center gap-2">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
                   </svg>
@@ -1002,7 +1103,7 @@ export default function Home() {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
                       </span>
                       <span className="alert-text">
-                        JWKS auto-hosted at <code className="text-[11px] bg-[var(--bg-tertiary)] px-1 rounded">{typeof window !== 'undefined' ? window.location.origin : ''}/api/jwks</code>
+                        JWKS auto-hosted at <code className="text-[11px] bg-[var(--bg-tertiary)] px-1 rounded">{appOrigin}/api/jwks/{tenantId}</code>
                       </span>
                     </div>
                   ) : (
@@ -1088,7 +1189,7 @@ export default function Home() {
                   </p>
                   {jwksHosted && (
                     <div className="text-xs text-[var(--text-muted)] space-y-1">
-                      <p>Well-known URL: <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">{typeof window !== 'undefined' ? window.location.origin : ''}/.well-known/ssf-configuration</code></p>
+                      <p>Well-known URL: <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">{tenantBaseUrl}/.well-known/ssf-configuration</code></p>
                     </div>
                   )}
                   {providerRegistration.status === 'error' && (
@@ -1142,9 +1243,31 @@ export default function Home() {
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--text-secondary)] mb-4">
+              <p className="text-xs text-[var(--text-secondary)] mb-2">
                 Sets the <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">current_level</code> in the risk-change payload sent to Okta. High risk triggers Entity Risk Policy actions (e.g. Universal Logout, step-up MFA).
               </p>
+              <p className="text-xs text-[var(--text-muted)] mb-4">
+                Next <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">previous_level</code> for {config.subjectEmail || 'this user'}:{' '}
+                <strong className="text-[var(--text-secondary)]">
+                  {riskTracker[subjectKey(config.subjectEmail)] ?? 'low (default)'}
+                </strong>
+                {riskTracker[subjectKey(config.subjectEmail)] && (
+                  <>
+                    {' · '}
+                    <button onClick={resetRiskTracker} className="underline hover:text-[var(--text-secondary)]">
+                      reset
+                    </button>
+                  </>
+                )}
+              </p>
+
+              <div className="policy-callout mb-4">
+                <strong>Entity Risk Policy vs. Session Protection Policy.</strong>{' '}
+                Signals sent from here (risk changes, CAEP session/credential events) feed <em>entity risk</em> and drive the
+                Entity Risk Policy. Session Protection Policy reacts to IP/device changes Okta observes in a live session
+                (<code>user.session.context.change</code>) — no transmitter can trigger it. Demo that one by switching
+                networks mid-session.
+              </div>
 
               <EventButtonGrid
                 events={selectedProvider.events}
@@ -1155,6 +1278,17 @@ export default function Home() {
                 onPreviewClick={setPreviewEvent}
                 onAddToQueue={addToQueue}
               />
+
+              <div className="verify-in-okta mt-5">
+                <p className="text-xs font-semibold text-[var(--text-secondary)] mb-2">Verify in Okta (Reports &gt; System Log)</p>
+                {SYSTEM_LOG_QUERIES.map((q) => (
+                  <div key={q.label} className="flex items-center gap-2 text-xs mb-1">
+                    <span className="text-[var(--text-muted)] w-36 flex-shrink-0">{q.label}</span>
+                    <code className="flex-1 min-w-0 truncate text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">{q.query}</code>
+                    <CopyButton text={q.query} label="filter" compact />
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Advanced Tools */}
@@ -1335,6 +1469,7 @@ export default function Home() {
           event={previewEvent}
           subjectEmail={config.subjectEmail}
           riskLevel={riskLevel}
+          previousLevel={previewEvent.category === 'risk' ? riskTracker[subjectKey(config.subjectEmail)] : undefined}
           issuerUrl={config.issuerUrl}
           oktaDomain={config.oktaDomain}
           loading={loading}
