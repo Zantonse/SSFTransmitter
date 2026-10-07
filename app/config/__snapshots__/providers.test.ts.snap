@@ -1,0 +1,845 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`event payloads > cisco/exploit-prevention matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Exploit attempt prevented by Cisco Secure Endpoint",
+    },
+    "reason_user": {
+      "en": "An attack attempt was blocked on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > cisco/malware-executed matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Malware execution detected by Cisco Secure Endpoint",
+    },
+    "reason_user": {
+      "en": "Malicious software was detected running on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > cisco/threat-quarantined matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Threat detected and quarantined by Cisco Secure Endpoint",
+    },
+    "reason_user": {
+      "en": "A potential threat was isolated on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > crowdstrike/credential-theft matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Credential theft attempt detected by CrowdStrike Falcon",
+    },
+    "reason_user": {
+      "en": "An attempt to steal your credentials was blocked",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > crowdstrike/idp-session-revoked matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/session-revoked": {
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "reason_admin": {
+      "en": "Falcon Identity Protection revoked session after detecting token reuse from an unmanaged host",
+    },
+    "reason_user": {
+      "en": "Your session was ended for security reasons",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > crowdstrike/ioc-match matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Indicator of compromise matched known threat intelligence",
+    },
+    "reason_user": {
+      "en": "A security threat was identified on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > crowdstrike/malware-detected matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Malware detected on user endpoint by CrowdStrike Falcon",
+    },
+    "reason_user": {
+      "en": "Security software detected a threat on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > crowdstrike/suspicious-process matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Suspicious process execution detected on endpoint",
+    },
+    "reason_user": {
+      "en": "Unusual activity was detected on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > custom/generic-risk matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "External provider reported account compromise",
+    },
+    "reason_user": {
+      "en": "Your account may have been compromised",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > custom/session-revoked-risk matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "User session revoked due to security policy",
+    },
+    "reason_user": {
+      "en": "Your session was ended for security reasons",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > microsoft/entra-session-revoked matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/session-revoked": {
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "reason_admin": {
+      "en": "Microsoft Entra ID revoked all sessions after a confirmed compromised sign-in",
+    },
+    "reason_user": {
+      "en": "Your session was ended for security reasons",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > microsoft/impossible-travel matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Impossible travel detected: sign-in from geographically distant locations",
+    },
+    "reason_user": {
+      "en": "Unusual sign-in locations were detected",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > microsoft/risky-signin matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "High-risk sign-in detected by Microsoft Entra ID Protection",
+    },
+    "reason_user": {
+      "en": "A suspicious sign-in attempt was detected",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > microsoft/suspicious-activity matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Suspicious activity detected by Microsoft Defender",
+    },
+    "reason_user": {
+      "en": "Unusual activity was detected on your account",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > microsoft/threat-detected matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Active threat detected on device by Microsoft Defender",
+    },
+    "reason_user": {
+      "en": "Security software detected a threat on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > netskope/data-exfiltration matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Potential data exfiltration attempt detected by Netskope",
+    },
+    "reason_user": {
+      "en": "Suspicious data transfer activity was detected",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > netskope/policy-violation matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Cloud security policy violation detected by Netskope",
+    },
+    "reason_user": {
+      "en": "A cloud security policy was violated",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > netskope/risky-app-usage matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "User accessing high-risk cloud application detected",
+    },
+    "reason_user": {
+      "en": "Access to a risky application was detected",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > paloalto/c2-communication matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Command and control (C2) communication detected",
+    },
+    "reason_user": {
+      "en": "Suspicious network communication was detected from your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > paloalto/lateral-movement matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Lateral movement detected in network by Cortex XDR",
+    },
+    "reason_user": {
+      "en": "Suspicious network activity was detected from your account",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > paloalto/ransomware-behavior matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Ransomware behavior detected: mass file encryption attempt",
+    },
+    "reason_user": {
+      "en": "Potentially harmful file activity was detected on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > proofpoint/bec-attempt matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Business email compromise (BEC) attempt detected",
+    },
+    "reason_user": {
+      "en": "A suspicious email impersonation was detected",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > proofpoint/malware-attachment matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Malicious email attachment detected by Proofpoint TAP",
+    },
+    "reason_user": {
+      "en": "A harmful email attachment was blocked",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > proofpoint/phishing-clicked matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "User clicked on known phishing link detected by Proofpoint",
+    },
+    "reason_user": {
+      "en": "You may have clicked on a malicious link",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > proofpoint/vap-targeted matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Very Attacked Person (VAP) targeted by threat campaign",
+    },
+    "reason_user": {
+      "en": "Your account has been targeted by attackers",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > risc/risc-account-credential-change matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/risc/event-type/account-credential-change-required": {
+    "event_timestamp": 1700000000,
+    "subject": {
+      "email": "jane.doe@example.com",
+      "subject_type": "email",
+    },
+  },
+}
+`;
+
+exports[`event payloads > risc/risc-account-disabled matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/risc/event-type/account-disabled": {
+    "event_timestamp": 1700000000,
+    "subject": {
+      "email": "jane.doe@example.com",
+      "subject_type": "email",
+    },
+  },
+}
+`;
+
+exports[`event payloads > risc/risc-credential-change matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/risc/event-type/credential-change-required": {
+    "event_timestamp": 1700000000,
+    "subject": {
+      "email": "jane.doe@example.com",
+      "subject_type": "email",
+    },
+  },
+}
+`;
+
+exports[`event payloads > risc/risc-session-revoked matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/risc/event-type/session-revoked": {
+    "event_timestamp": 1700000000,
+    "subject": {
+      "email": "jane.doe@example.com",
+      "subject_type": "email",
+    },
+  },
+}
+`;
+
+exports[`event payloads > sentinelone/behavioral-ai matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Behavioral AI detected suspicious activity patterns",
+    },
+    "reason_user": {
+      "en": "Unusual behavior was detected on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > sentinelone/malicious-file matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Malicious file detected and quarantined by SentinelOne",
+    },
+    "reason_user": {
+      "en": "A harmful file was found on your device",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > sentinelone/threat-mitigated matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Threat automatically mitigated by SentinelOne",
+    },
+    "reason_user": {
+      "en": "A security threat was detected and blocked",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > soar/caep-assurance-downgrade matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change": {
+    "change_direction": "decrease",
+    "current_level": "nist-aal1",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "namespace": "NIST-AAL",
+    "previous_level": "nist-aal3",
+    "reason_admin": {
+      "en": "Authentication assurance downgraded from AAL3 to AAL1",
+    },
+    "reason_user": {
+      "en": "Your sign-in strength changed",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > soar/caep-credential-change matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/credential-change": {
+    "change_type": "update",
+    "credential_type": "password",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "reason_admin": {
+      "en": "Password reset by helpdesk after credential exposure",
+    },
+    "reason_user": {
+      "en": "Your password was reset by your IT team",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > soar/caep-risk-level-change matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/risk-level-change": {
+    "current_level": "HIGH",
+    "event_timestamp": 1700000000,
+    "previous_level": "LOW",
+    "principal": "USER",
+    "risk_reason": "SOC correlation engine raised user risk",
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > soar/caep-session-revoked matches snapshot 1`] = `
+{
+  "https://schemas.openid.net/secevent/caep/event-type/session-revoked": {
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "reason_admin": {
+      "en": "SOAR playbook revoked session: suspected session hijack",
+    },
+    "reason_user": {
+      "en": "Your session was ended for security reasons",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > zscaler/dlp-violation matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "DLP policy violation: sensitive data exfiltration attempted",
+    },
+    "reason_user": {
+      "en": "A data security policy was violated",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > zscaler/malware-blocked matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Malware download attempt blocked by Zscaler ZIA",
+    },
+    "reason_user": {
+      "en": "A potentially harmful download was blocked",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;
+
+exports[`event payloads > zscaler/suspicious-cloud matches snapshot 1`] = `
+{
+  "https://schemas.okta.com/secevent/okta/event-type/user-risk-change": {
+    "current_level": "high",
+    "event_timestamp": 1700000000,
+    "initiating_entity": "policy",
+    "previous_level": "low",
+    "reason_admin": {
+      "en": "Suspicious cloud application activity detected",
+    },
+    "reason_user": {
+      "en": "Unusual cloud activity was detected from your account",
+    },
+    "subject": {
+      "user": {
+        "email": "jane.doe@example.com",
+        "format": "email",
+      },
+    },
+  },
+}
+`;

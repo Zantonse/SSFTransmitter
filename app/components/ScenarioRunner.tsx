@@ -7,7 +7,12 @@ import { SecurityEvent, RiskLevel } from '../types/providers';
 
 interface ScenarioRunnerProps {
   disabled: boolean;
-  onTransmitStep: (providerId: string, event: SecurityEvent, riskLevel: RiskLevel) => Promise<boolean>;
+  onTransmitStep: (
+    providerId: string,
+    event: SecurityEvent,
+    riskLevel: RiskLevel,
+    overrides?: { reasonAdmin?: string; reasonUser?: string }
+  ) => Promise<boolean>;
   delayMs?: number;
 }
 
@@ -52,7 +57,10 @@ export default function ScenarioRunner({ disabled, onTransmitStep, delayMs }: Sc
       });
 
       // Execute
-      const success = await onTransmitStep(step.providerId, event, step.riskLevel);
+      const success = await onTransmitStep(step.providerId, event, step.riskLevel, {
+        reasonAdmin: step.reasonAdmin,
+        reasonUser: step.reasonUser,
+      });
 
       // Mark result
       setExecution((prev) => {
@@ -115,6 +123,7 @@ export default function ScenarioRunner({ disabled, onTransmitStep, delayMs }: Sc
         {SCENARIOS.map((scenario) => {
           const isActive = execution?.scenarioId === scenario.id;
           const isRunning = isActive && execution?.running;
+          const currentNote = isRunning ? scenario.steps[execution.currentStep]?.note : undefined;
 
           return (
             <div key={scenario.id} className={`scenario-card ${isActive ? 'active' : ''}`}>
@@ -150,6 +159,7 @@ export default function ScenarioRunner({ disabled, onTransmitStep, delayMs }: Sc
                       <div className="scenario-step-info">
                         <span className="scenario-step-provider">{getProviderName(step.providerId)}</span>
                         <span className="scenario-step-event">{getEventLabel(step.providerId, step.eventId)}</span>
+                        {step.reasonAdmin && <span className="scenario-step-note">{step.reasonAdmin}</span>}
                       </div>
                       <span className="scenario-step-risk" style={{ background: riskColor(step.riskLevel) }}>
                         {step.riskLevel.toUpperCase()}
@@ -160,6 +170,12 @@ export default function ScenarioRunner({ disabled, onTransmitStep, delayMs }: Sc
                   );
                 })}
               </div>
+
+              {currentNote && (
+                <div className="scenario-presenter-note">
+                  <strong>Presenter:</strong> {currentNote}
+                </div>
+              )}
 
               {/* Action */}
               <div className="scenario-actions">

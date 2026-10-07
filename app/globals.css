@@ -2646,3 +2646,83 @@ body {
   color: var(--accent-green);
   font-size: 13px;
 }
+
+/* Policy surface callout (Entity Risk vs. Session Protection) */
+.policy-callout {
+  background: linear-gradient(135deg, rgba(163, 113, 247, 0.12), rgba(163, 113, 247, 0.04));
+  border: 1px solid rgba(163, 113, 247, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.policy-callout code {
+  font-size: 11px;
+  background: var(--bg-tertiary);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.verify-in-okta {
+  border-top: 1px solid var(--border-default);
+  padding-top: 12px;
+}
+
+/* Event groups by policy surface */
+.event-group + .event-group {
+  margin-top: 20px;
+}
+
+.event-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.event-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.event-group-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.event-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+}
+
+.event-tag.experimental {
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+}
+
+/* Scenario presenter notes */
+.scenario-step-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.scenario-presenter-note {
+  margin-top: 10px;
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.12), rgba(88, 166, 255, 0.04));
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

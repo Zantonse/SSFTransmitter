@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as jose from 'jose';
 import { v4 as uuidv4 } from 'uuid';
 import { PROVIDERS } from '../../config/providers';
-import { RiskLevel } from '../../types/providers';
+import { RiskLevel, PayloadContext } from '../../types/providers';
+
+const RISK_LEVELS: RiskLevel[] = ['low', 'medium', 'high'];
 
 interface TransmitRequest {
   oktaDomain: string;
@@ -13,6 +15,9 @@ interface TransmitRequest {
   providerId?: string;
   eventId?: string;
   riskLevel?: RiskLevel;
+  previousLevel?: RiskLevel;
+  reasonAdmin?: string;
+  reasonUser?: string;
   customPayload?: Record<string, unknown>;
 }
 
@@ -36,6 +41,11 @@ export async function POST(req: NextRequest) {
     const issuerUrl = body.issuerUrl.trim();
     const subjectEmail = body.subjectEmail.trim();
     const { privateKeyPem, keyId, providerId, eventId, riskLevel, customPayload } = body;
+    const context: PayloadContext = {
+      previousLevel: body.previousLevel && RISK_LEVELS.includes(body.previousLevel) ? body.previousLevel : undefined,
+      reasonAdmin: body.reasonAdmin || undefined,
+      reasonUser: body.reasonUser || undefined,
+    };
 
     const privateKey = await jose.importPKCS8(privateKeyPem, 'RS256');
 
@@ -63,7 +73,7 @@ export async function POST(req: NextRequest) {
 
       providerName = provider.name;
       eventLabel = event.label;
-      eventsPayload = event.buildPayload(subjectEmail, timestamp, riskLevel || 'high');
+      eventsPayload = event.buildPayload(subjectEmail, timestamp, riskLevel || 'high', context);
     } else {
       throw new Error('Either customPayload or providerId/eventId must be provided');
     }
