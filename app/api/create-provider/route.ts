@@ -72,13 +72,27 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = (data.error as string) || (data.errorCode as string) || 'okta_error';
-      const errorDescription =
+      const summary =
         (data.errorDescription as string) ||
         (data.errorSummary as string) ||
         `Okta returned status ${response.status}`;
+      // Okta puts the actual reason ("...already exists") in errorCauses, not the summary
+      const causes = Array.isArray(data.errorCauses)
+        ? (data.errorCauses as { errorSummary?: string }[])
+            .map((c) => c.errorSummary)
+            .filter((c): c is string => Boolean(c))
+        : [];
+      const errorDescription = causes.length > 0 ? `${summary} — ${causes.join('; ')}` : summary;
+
+      let hint = '';
+      if (/validation failed: name/i.test(summary)) {
+        hint =
+          `Okta rejected the provider name "${requestBody.name}" — usually because a provider with that name already exists. ` +
+          'Delete the old one in Okta Admin (Security > Device Integrations > Receive shared signals) or register with a different name.';
+      }
 
       return NextResponse.json(
-        { success: false, error, errorDescription, status: response.status },
+        { success: false, error, errorDescription, hint, status: response.status },
         { status: response.status }
       );
     }

@@ -399,6 +399,9 @@ export default function Home() {
           oktaDomain: config.oktaDomain,
           apiToken: oktaApiToken,
           appUrl,
+          // Provider names must be unique per org; suffix with this browser's tenant so it
+          // can't collide with an older "SSF Transmitter" registration
+          providerName: `SSF Transmitter ${tenantId.slice(0, 6)}`,
         }),
       });
       const data = await res.json();
@@ -412,9 +415,10 @@ export default function Home() {
       } else {
         setProviderRegistration({
           status: 'error',
-          error: data.errorDescription || data.error,
+          error: [data.errorDescription || data.error, data.hint].filter(Boolean).join(' '),
         });
         addLog(`Provider registration failed: ${data.errorDescription || data.error}`, 'error');
+        if (data.hint) addLog(`Hint: ${data.hint}`, 'info');
       }
     } catch {
       setProviderRegistration({ status: 'error', error: 'Network error' });
