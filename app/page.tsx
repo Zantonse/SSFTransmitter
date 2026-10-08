@@ -927,12 +927,12 @@ export default function Home() {
           <div className="lg:col-span-3 space-y-6">
             {/* Configuration Card */}
             <div id="section-config" className="card p-6">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">01</div>
                   <h2 className="section-title">Configuration</h2>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button onClick={handleExportConfig} className="btn-ghost text-xs" title="Export configuration">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1006,7 +1006,7 @@ export default function Home() {
                 />
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm text-[var(--text-secondary)] mb-2 flex items-center gap-2">
+                  <label className="relative block text-sm text-[var(--text-secondary)] mb-2 flex items-center gap-2">
                     Issuer URL
                     <details className="inline-help">
                       <summary className="inline-help-trigger" title="What is the Issuer URL?">
@@ -1103,7 +1103,7 @@ export default function Home() {
 
             {/* Key Management Card */}
             <div id="section-keys" className="card p-6">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">02</div>
                   <h2 className="section-title">Key Management</h2>
@@ -1186,7 +1186,7 @@ export default function Home() {
 
             {/* Register Provider Card */}
             <div id="section-register" className="card p-6">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">03</div>
                   <h2 className="section-title">Register Provider</h2>
@@ -1257,12 +1257,12 @@ export default function Home() {
 
             {/* Transmission Card */}
             <div id="section-transmit" className="card p-6">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div className="section-header mb-0">
                   <div className="section-number">04</div>
                   <h2 className="section-title">Transmission</h2>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <RiskLevelSelector
                     selectedLevel={riskLevel}
                     onLevelChange={setRiskLevel}
@@ -1404,7 +1404,7 @@ export default function Home() {
             {/* Payload Viewer */}
             {lastPayload && (
               <div className="card p-6">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <div className="section-header mb-0">
                     <div className="section-number">05</div>
                     <h2 className="section-title">Last Payload</h2>

@@ -2853,3 +2853,35 @@ body {
   display: inline;
   margin: 0;
 }
+
+/* Phones: keep everything inside the viewport */
+@media (max-width: 639px) {
+  .setup-stepper {
+    padding: 12px;
+  }
+
+  .setup-stepper-item {
+    gap: 6px;
+  }
+
+  /* Circles + lines show progress; only name the current step */
+  .setup-stepper-label {
+    display: none;
+  }
+
+  .setup-stepper-label.current {
+    display: block;
+    white-space: normal;
+    min-width: 0;
+  }
+
+  /* Anchor the help popup to its label (made relative) and size it to the screen */
+  .inline-help {
+    position: static;
+  }
+
+  .inline-help-content {
+    left: 0;
+    width: calc(100vw - 80px);
+  }
+}
