@@ -2726,3 +2726,162 @@ body {
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+/* Inline help: per-section explainer */
+.section-help {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 16px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.section-help-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent-blue);
+}
+
+.section-help-okta {
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.section-help-okta strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Inline help: "How this works" panel */
+.how-it-works {
+  margin: 0 0 20px 0;
+}
+
+.how-it-works summary {
+  font-size: 13px;
+}
+
+.how-it-works-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0 !important;
+  margin: 12px 0 !important;
+}
+
+.how-it-works-flow li {
+  position: relative;
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 !important;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+@media (min-width: 900px) {
+  .how-it-works-flow {
+    flex-wrap: nowrap;
+    gap: 18px;
+  }
+
+  .how-it-works-flow li:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-blue);
+    font-weight: 600;
+  }
+}
+
+.how-it-works-flow-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.how-it-works-flow-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.how-it-works-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.how-it-works-heading {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px !important;
+}
+
+.how-it-works-columns ul {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.how-it-works-columns li {
+  margin: 4px 0;
+}
+
+.how-it-works-columns dl > div {
+  margin: 4px 0;
+}
+
+.how-it-works-columns dt {
+  display: inline;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.how-it-works-columns dt::after {
+  content: ' — ';
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.how-it-works-columns dd {
+  display: inline;
+  margin: 0;
+}
+
+/* Phones: keep everything inside the viewport */
+@media (max-width: 639px) {
+  .setup-stepper {
+    padding: 12px;
+  }
+
+  .setup-stepper-item {
+    gap: 6px;
+  }
+
+  /* Circles + lines show progress; only name the current step */
+  .setup-stepper-label {
+    display: none;
+  }
+
+  .setup-stepper-label.current {
+    display: block;
+    white-space: normal;
+    min-width: 0;
+  }
+
+  /* Anchor the help popup to its label (made relative) and size it to the screen */
+  .inline-help {
+    position: static;
+  }
+
+  .inline-help-content {
+    left: 0;
+    width: calc(100vw - 80px);
+  }
+}
