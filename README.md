@@ -71,6 +71,8 @@ The legacy **RISC Session Revoked** event uses the RISC namespace. In the OpenID
 
 ## Quick Start
 
+New to the tool? Open **How this works** at the top of the app. It explains the signal flow, what you need in Okta first, and the key terms, and each section has a one-line explainer of what it does.
+
 ### 1. Install & Run
 
 ```bash

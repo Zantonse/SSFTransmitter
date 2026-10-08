@@ -15,11 +15,14 @@ import CustomEventBuilder from './components/CustomEventBuilder';
 import SessionStats from './components/SessionStats';
 import ScenarioRunner from './components/ScenarioRunner';
 import SetupStepper from './components/SetupStepper';
+import HowItWorks from './components/HowItWorks';
+import SectionHelp from './components/SectionHelp';
 import { TransmissionRecord } from './types/history';
 import { QueuedEvent, BulkSendResult } from './types/bulk';
 
 const KEYS_STORAGE_KEY = 'ssf-transmitter-keys';
 const RISK_TRACKER_STORAGE_KEY = 'ssf-risk-tracker';
+const HOW_IT_WORKS_COLLAPSED_KEY = 'ssf-how-it-works-collapsed';
 
 const SYSTEM_LOG_QUERIES = [
   { label: 'Signal received', query: 'eventType eq "security.events.provider.receive_event"' },
@@ -66,6 +69,9 @@ export default function Home() {
   // Last risk level successfully sent per subject, so SETs report the real previous_level.
   // The ref is read by async scenario/bulk loops (avoids stale closures); the state drives the UI.
   const riskTrackerRef = useRef<Record<string, RiskLevel>>({});
+  // "How this works" starts closed and opens on mount unless the user collapsed it before,
+  // so returning users don't see it flash open
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [riskTracker, setRiskTracker] = useState<Record<string, RiskLevel>>({});
 
   const selectedProvider = PROVIDERS[providerId];
@@ -93,6 +99,7 @@ export default function Home() {
     }
 
     setAppOrigin(window.location.origin);
+    setHowItWorksOpen(localStorage.getItem(HOW_IT_WORKS_COLLAPSED_KEY) !== 'true');
 
     const savedTracker = localStorage.getItem(RISK_TRACKER_STORAGE_KEY);
     if (savedTracker) {
@@ -298,6 +305,11 @@ export default function Home() {
     } catch {
       setConnectionStatus({ status: 'unreachable', message: 'Network error' });
     }
+  };
+
+  const handleHowItWorksToggle = (open: boolean) => {
+    setHowItWorksOpen(open);
+    localStorage.setItem(HOW_IT_WORKS_COLLAPSED_KEY, open ? 'false' : 'true');
   };
 
   const subjectKey = (email: string) => email.trim().toLowerCase();
@@ -908,6 +920,7 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <SessionStats history={history} sessionStart={sessionStartRef.current} />
+        <HowItWorks open={howItWorksOpen} onToggle={handleHowItWorksToggle} />
         <SetupStepper completedSteps={completedSteps} onStepClick={handleStepClick} />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Left Column - Configuration */}
@@ -945,6 +958,10 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+
+              <SectionHelp inOkta="nothing yet — just have the org URL and a test user's email ready.">
+                Which Okta org receives the signals, and which user they&apos;re about. Use the email of a real user in that org.
+              </SectionHelp>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
@@ -996,7 +1013,7 @@ export default function Home() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                       </summary>
                       <div className="inline-help-content">
-                        This is the URL you entered when creating the Security Events Push Stream in Okta. It identifies this transmitter. It can be any URL you control — many people use their JWKS hosting URL as the base.
+                        The ID Okta knows this transmitter by. It&apos;s set automatically when you generate keys and must match the provider registered in Okta — only change it if you created a stream manually with a different issuer.
                       </div>
                     </details>
                   </label>
@@ -1099,6 +1116,11 @@ export default function Home() {
                 </button>
               </div>
 
+              <SectionHelp inOkta="nothing to do — Okta fetches the public key from this app automatically.">
+                Creates a signing key pair. The private key stays in this browser; the public key is published at your JWKS URL so
+                Okta can verify every event came from you. Regenerating keys needs no change in Okta.
+              </SectionHelp>
+
               {keys ? (
                 <div className="space-y-4">
                   {jwksHosted ? (
@@ -1171,6 +1193,10 @@ export default function Home() {
                 </div>
                 <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Optional</span>
               </div>
+
+              <SectionHelp inOkta={<>the provider appears under Security &gt; Device Integrations &gt; Receive shared signals. Skip this step if you created it there manually.</>}>
+                Tells Okta to trust events from this app. Needed once per browser — one click with an API token.
+              </SectionHelp>
 
               {providerRegistration.status === 'success' ? (
                 <div className="space-y-3">
@@ -1247,9 +1273,11 @@ export default function Home() {
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--text-secondary)] mb-2">
-                Sets the <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">current_level</code> in the risk-change payload sent to Okta. High risk triggers Entity Risk Policy actions (e.g. Universal Logout, step-up MFA).
-              </p>
+              <SectionHelp inOkta="open the target user to watch their risk change, and use the System Log filters at the bottom of this card.">
+                Each button sends one signed event about the target user. The Risk Level selector sets the{' '}
+                <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">current_level</code> for risk
+                events — High triggers your Entity Risk Policy (e.g. Universal Logout, step-up MFA).
+              </SectionHelp>
               <p className="text-xs text-[var(--text-muted)] mb-4">
                 Next <code className="text-[var(--accent-purple)] bg-[var(--bg-tertiary)] px-1 rounded text-[11px]">previous_level</code> for {config.subjectEmail || 'this user'}:{' '}
                 <strong className="text-[var(--text-secondary)]">
@@ -1333,6 +1361,15 @@ export default function Home() {
                 </button>
               </div>
               <div className="right-panel-content">
+                <div className="px-4 pt-4">
+                  <SectionHelp>
+                    {toolsTab === 'scenarios'
+                      ? 'Scenarios send several events in a row to tell an attack story. Presenter notes show what to point at in Okta while each step runs.'
+                      : toolsTab === 'bulk'
+                        ? 'Bulk sends a queue of events with a delay between each. Add events with the + button on any event card.'
+                        : 'Custom lets you build or hand-edit the event payload, for schemas the buttons don’t cover.'}
+                  </SectionHelp>
+                </div>
                 {toolsTab === 'scenarios' ? (
                   <div className="h-[500px] overflow-hidden">
                     <ScenarioRunner
